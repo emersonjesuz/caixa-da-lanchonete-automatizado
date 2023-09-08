@@ -1,83 +1,116 @@
-class CaixaDaLanchonete {
-  calcularValorDaCompra(metodoDePagamento, itens) {
-    const formaDePagamentoInvalida =
-      metodoDePagamento !== "dinheiro" &&
-      metodoDePagamento !== "debito" &&
-      metodoDePagamento !== "credito";
-    if (formaDePagamentoInvalida) return this.naoInformouFormaDePagamento();
+export class CaixaDaLanchonete {
+  constructor() {
+    this.pagamento = ["dinheiro", "debito", "credito"];
+    this.temPedidoInvalido = "";
+    this.valorTotalDoPedido = 0;
+    this.pedidoExtraDoCafe = false;
+    this.pedidoExtraDoSanduiche = false;
+    this.sanduicheNoPedido = false;
+    this.cafeNoPedido = false;
+    this.cardapio = {
+      cafe: 300,
+      chantily: 150,
+      suco: 620,
+      sanduiche: 650,
+      queijo: 200,
+      salgado: 725,
+      combo1: 950,
+      combo2: 750,
+    };
+  }
 
-    if (!itens.length) return this.naoFezNenhumPedido();
+  calcularValorDaCompra(metodoDePagamento, itens) {
+    if (!metodoDePagamento) return "Forma de pagamento inválida!";
+
+    if (!this.formaDePagamento(metodoDePagamento))
+      return "Forma de pagamento inválida!";
+
+    if (!itens || !itens.length) return "Não há itens no carrinho de compra!";
+
     return this.calculandoPedidos(metodoDePagamento, itens);
   }
 
+  formaDePagamento(metodoDePagamento) {
+    if (this.pagamento.indexOf(metodoDePagamento) === -1) {
+      return false;
+    }
+    return true;
+  }
+
+  anotandoPedidoComExtra(pedido) {
+    if (pedido === "cafe") {
+      this.cafeNoPedido = true;
+    } else if (pedido === "sanduiche") {
+      this.sanduicheNoPedido = true;
+    } else if (pedido === "chantily") {
+      this.pedidoExtraDoCafe = true;
+    } else if (pedido === "queijo") {
+      this.pedidoExtraDoSanduiche = true;
+    }
+  }
+
+  verificandoCodigoDoPedido(codigoDoPedido) {
+    let valorDoPedido = 0;
+    let contidadeDeItemInvalido = 0;
+    for (const pedido of Object.entries(this.cardapio)) {
+      if (pedido[0] !== codigoDoPedido) {
+        contidadeDeItemInvalido++;
+      }
+
+      if (pedido[0] === codigoDoPedido) {
+        if (!pedido[1]) {
+          this.temPedidoInvalido = "Quantidade inválida!";
+          break;
+        }
+        this.anotandoPedidoComExtra(codigoDoPedido);
+        valorDoPedido = pedido[1];
+      }
+    }
+    if (contidadeDeItemInvalido === Object.entries(this.cardapio).length) {
+      return (this.temPedidoInvalido = "Item inválido!");
+    }
+    return valorDoPedido;
+  }
+
+  analisandoPedidoExtra() {
+    const temPedidoExtraSemPrincipal =
+      (this.pedidoExtraDoCafe && !this.cafeNoPedido) ||
+      (this.pedidoExtraDoSanduiche && !this.sanduicheNoPedido);
+
+    return temPedidoExtraSemPrincipal;
+  }
+
   calculandoPedidos(metodoDePagamento, itens) {
-    let temPedidoInvalido = "";
-    let valorTotalDoPedido = 0;
-    let pedidoExtraDoCafe = false;
-    let pedidoExtraDoSanduiche = false;
-    let sanduicheNoPedido = false;
-    let cafeNoPedido = false;
     for (let iten of itens) {
       const cadaPedido = iten.split(",");
 
-      const codigoDoPedido = cadaPedido[0];
-      const quantidadeDeItensPedido = +cadaPedido[1] ? +cadaPedido[1] : 0;
-      if (codigoDoPedido === "cafe") {
-        cafeNoPedido = true;
-        valorTotalDoPedido += 300 * +quantidadeDeItensPedido;
-      } else if (codigoDoPedido === "sanduiche") {
-        sanduicheNoPedido = true;
-        valorTotalDoPedido += 650 * +quantidadeDeItensPedido;
-      } else if (codigoDoPedido === "chantily") {
-        pedidoExtraDoCafe = true;
-        valorTotalDoPedido += 150 * +quantidadeDeItensPedido;
-      } else if (codigoDoPedido === "suco") {
-        valorTotalDoPedido += 620 * +quantidadeDeItensPedido;
-      } else if (codigoDoPedido === "queijo") {
-        pedidoExtraDoSanduiche = true;
-        valorTotalDoPedido += 200 * +quantidadeDeItensPedido;
-      } else if (codigoDoPedido === "salgado") {
-        valorTotalDoPedido += 725 * +quantidadeDeItensPedido;
-      } else if (codigoDoPedido === "combo1") {
-        valorTotalDoPedido += 950 * +quantidadeDeItensPedido;
-      } else if (codigoDoPedido === "combo2") {
-        valorTotalDoPedido += 750 * +quantidadeDeItensPedido;
-      } else {
-        temPedidoInvalido = "Item inválido!";
+      const verificandoPedido = this.verificandoCodigoDoPedido(cadaPedido[0]);
+
+      if (typeof verificandoPedido === "string") {
         break;
       }
-
-      const verificandoPedidoComValorZerado = +cadaPedido[1];
-      if (!verificandoPedidoComValorZerado) return "Quantidade inválida!";
+      if (!Number(cadaPedido[1])) return "Quantidade inválida!";
+      this.valorTotalDoPedido += verificandoPedido * +cadaPedido[1];
     }
-    if (temPedidoInvalido) return temPedidoInvalido;
 
-    const temPedidoExtraSemPrincipal =
-      (pedidoExtraDoCafe && !cafeNoPedido) ||
-      (pedidoExtraDoSanduiche && !sanduicheNoPedido);
+    if (this.temPedidoInvalido) return this.temPedidoInvalido;
 
-    if (temPedidoExtraSemPrincipal) return this.pedidoExtraSemPrincipal();
+    if (this.analisandoPedidoExtra())
+      return "Item extra não pode ser pedido sem o principal";
 
-    if (metodoDePagamento === "dinheiro") valorTotalDoPedido *= 0.95;
+    this.aplicandoFormaDePagamento(metodoDePagamento);
+
+    return this.convertendoValor(this.valorTotalDoPedido);
+  }
+
+  aplicandoFormaDePagamento(metodoDePagamento) {
+    if (metodoDePagamento === "dinheiro") this.valorTotalDoPedido *= 0.95;
 
     if (metodoDePagamento === "credito")
-      valorTotalDoPedido += valorTotalDoPedido *= 0.03;
-    const convertendoValorTotal =
-      "R$ " + (valorTotalDoPedido / 100).toFixed(2).replace(".", ",");
-    return convertendoValorTotal;
+      this.valorTotalDoPedido += this.valorTotalDoPedido *= 0.03;
   }
 
-  pedidoExtraSemPrincipal() {
-    return "Item extra não pode ser pedido sem o principal";
-  }
-
-  naoFezNenhumPedido() {
-    return "Não há itens no carrinho de compra!";
-  }
-
-  naoInformouFormaDePagamento() {
-    return "Forma de pagamento inválida!";
+  convertendoValor(valor) {
+    return "R$ " + (valor / 100).toFixed(2).replace(".", ",");
   }
 }
-
-export { CaixaDaLanchonete };
